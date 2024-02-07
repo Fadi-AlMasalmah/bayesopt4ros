@@ -43,7 +43,7 @@ class ExampleContextualClient(object):
         self.client.wait_for_server()
 
         if objective == "myFun": #"ContextualForrester":
-            self.func = lambda x: x[:, 0] + 3*torch.sin(x[:,0]+x[:,1]) #test_objectives.ContextualForrester()
+            self.func = lambda x: x[:, 0] + x[:, 1] + 3*torch.sin(x[:,0]+x[:,2]) #test_objectives.ContextualForrester()
         else:
             raise ValueError("No such objective.")
 
@@ -213,8 +213,8 @@ if __name__ == '__main__':
         x_opt = result.x_opt
         f_opt = result.f_opt
         rospy.loginfo("[Client] for context = 0.7")
-        rospy.loginfo(f"[Client] x_opt {x_opt}, x_true_opt = -2.61")
-        rospy.loginfo(f"[Client] f_opt {f_opt}, f_true_opt = -5.4388")
+        rospy.loginfo(f"[Client] x_opt {x_opt}, x_true_opt = (-2.61, -5.0)")
+        rospy.loginfo(f"[Client] f_opt {f_opt}, f_true_opt = -10.4388")
 
         # Get the (estimated) optimum of the objective
         context = torch.tensor([0.1])
@@ -223,8 +223,8 @@ if __name__ == '__main__':
         x_opt = result.x_opt
         f_opt = result.f_opt
         rospy.loginfo("[Client] for context = 0.1")
-        rospy.loginfo(f"[Client] x_opt {x_opt},  x_true_opt = -2.011")
-        rospy.loginfo(f"[Client] f_opt {f_opt}, f_true_opt = -4.839")
+        rospy.loginfo(f"[Client] x_opt {x_opt},  x_true_opt = (-2.011, -5.0)")
+        rospy.loginfo(f"[Client] f_opt {f_opt}, f_true_opt = -9.839")
         # p_string = ", ".join([f"{xi:.3f}" for xi in x_new])
         # rospy.loginfo(f"[Client] x_new = [{p_string}]")
 

@@ -1,14 +1,15 @@
-# This configuration file is specific for the contextual my function.             f(x,c) =  x + 3*sin(x+c)
+# This configuration file is specific for the contextual my function.            
+# f((x,y),c) =  x + y + 3*sin(x+c)
 experiment_name: "example_1d_contextual_myFun"
 
-input_dim: 1
-lower_bound: [-5.0]
-upper_bound: [5.0]
+input_dim: 2
+lower_bound: [-5.0, -5.0]
+upper_bound: [5.0, 5.0]
 
 context_dim: 1
 
 acq_func: "UCB"
-max_iter: 5
+max_iter: 35
 n_init: 3
 log_dir: "/root/ws/logs/contextual_myFun_ucb/"
 maximize: false
