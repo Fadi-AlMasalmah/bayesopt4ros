@@ -1,0 +1,12 @@
+<launch>
+  <arg name="objective" default="x_m42_sq"/>
+  <param name="objective" value="$(arg objective)"/>
+
+  <arg name="bayesopt_config" default="$(find bayesopt4ros)/test/integration/configs/forrester_ucb.yaml"/>
+  <param name="bayesopt_config" value="$(arg bayesopt_config)"/>
+
+  <node name="BayesOpt11" pkg="bayesopt4ros" type="bayesopt_node.py" output="screen" required="true"/>
+
+  <node name="MyClientNode" pkg="bayesopt4ros" type="myClientV0.0.py" output="screen"/>
+  <!-- <test test-name="TestClientPython" pkg="bayesopt4ros" type="test_client_python.py"/> -->
+</launch>
