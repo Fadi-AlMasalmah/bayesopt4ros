@@ -1,1 +1,1 @@
-This branch is to add clients: BO_client, and CBO_client
+toRos2Manual branch is to based on myClients branch: the goal is to port to ros2 manually.

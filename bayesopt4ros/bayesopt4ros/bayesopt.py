@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-import rospy
+import rclpy
 import torch
 import yaml
 
@@ -20,15 +20,17 @@ from botorch.models.gpytorch import GPyTorchModel
 from botorch.models.transforms.input import Normalize
 from botorch.models.transforms.outcome import Standardize
 from botorch.optim import optimize_acqf as optimize_acqf_botorch
-from botorch.optim.fit import fit_gpytorch_torch
+from botorch.optim.fit import fit_gpytorch_mll_torch #old: fit_gpytorch_torch
 
 from gpytorch.mlls import ExactMarginalLogLikelihood
 
 from bayesopt4ros import util
 from bayesopt4ros.data_handler import DataHandler
-from bayesopt4ros.msg import BayesOptAction  # type: ignore
+from bayesopt_actions.action import BayesOpt #old: from bayesopt4ros.msg import BayesOptAction  # type: ignore
+
 from bayesopt4ros.util import PosteriorMean
 
+from rclpy.impl.rcutils_logger import RcutilsLogger
 
 class BayesianOptimization(object):
     """The Bayesian optimization class.
@@ -50,6 +52,9 @@ class BayesianOptimization(object):
         config: dict = None,
         maximize: bool = True,
         debug_visualization: bool = False,
+        feature_names: list[str]=None,
+        outcome_names: list[str]=None,
+        logger: RcutilsLogger=None,
     ) -> None:
         """The BayesianOptimization class initializer.
 
@@ -91,10 +96,11 @@ class BayesianOptimization(object):
         self.config = config
         self.maximize = maximize
         self.debug_visualization = debug_visualization
-        self.data_handler = DataHandler(maximize=self.maximize)
+        self.data_handler = DataHandler(maximize=self.maximize,feature_names=config["feature_names"],outcome_names=config["outcome_names"])
         self.gp = None  # GP is initialized when first data arrives
         self.x_opt = torch.empty(0, input_dim)
         self.y_opt = torch.empty(0, 1)
+        self.logger = logger
 
         if load_dir is not None:
             self.data_handler, self.gp = self._load_prev_bayesopt(load_dir)
@@ -105,7 +111,7 @@ class BayesianOptimization(object):
         assert bounds.shape[1] == self.input_dim
 
     @classmethod
-    def from_file(cls, config_file: str) -> BayesianOptimization:
+    def from_file(cls, config_file: str, logger) -> BayesianOptimization:
         """Initialize a BayesianOptimization instance from a config file.
 
         Parameters
@@ -123,9 +129,14 @@ class BayesianOptimization(object):
             config = yaml.load(f, Loader=yaml.FullLoader)
 
         # Bring bounds in correct format
-        lb = torch.tensor(config["lower_bound"])
-        ub = torch.tensor(config["upper_bound"])
+        lb = torch.tensor(config["lower_bound"],dtype=torch.double)
+        ub = torch.tensor(config["upper_bound"],dtype=torch.double)
         bounds = torch.stack((lb, ub))
+        feature_names = config["feature_names"]
+        outcome_names = config["outcome_names"]
+        logger.info('-----------')
+        logger.info("feature_names: "+feature_names[0])
+        logger.info("outcome_names: "+feature_names[0])
 
         # Construct class instance based on the config
         return cls(
@@ -138,9 +149,12 @@ class BayesianOptimization(object):
             load_dir=config.get("load_dir"),
             maximize=config["maximize"],
             config=config,
+            logger=logger,
+            feature_names = feature_names,
+            outcome_names = outcome_names,
         )
 
-    def next(self, goal: BayesOptAction) -> Tensor:
+    def next(self, goal: BayesOpt.Goal) -> Tensor: #BayesOptAction
         """Compute new parameters to perform an experiment with.
 
         The functionality of this method can generally be split into three steps:
@@ -151,7 +165,7 @@ class BayesianOptimization(object):
 
         Parameters
         ----------
-        goal : BayesOptAction
+        goal : BayesOpt.Goal # old: BayesOptAction
             The goal sent from the client for the most recent experiment.
 
         Returns
@@ -159,18 +173,29 @@ class BayesianOptimization(object):
         torch.Tensor
             The new parameters as an array.
         """
+        # self.logger.info("dbg BayesianOptimization Class: next()")
+
         # 1) Update the model with the new data
         self._update_model(goal)
+
+
+        # self.logger.info("dbg BayesianOptimization Class: next() after updating the model")
 
         # 2) Retrieve a new point as response of the server
         self.x_new = self._get_next_x()
 
+        # self.logger.info(f"dbg BayesianOptimization Class: next() after getting next x {self.x_new}")
+
+
         # 3) Save current state to file
         self._log_results()
 
+        # self.logger.info("dbg BayesianOptimization Class: next() after log_results")
+
+
         return self.x_new
 
-    def update_last_goal(self, goal: BayesOptAction) -> None:
+    def update_last_goal(self, goal: BayesOpt.Goal ) -> None: #old: BayesOptAction
         """Updates the GP model with the last function value obtained.
 
         .. note:: This function is only called once from the server, right before
@@ -179,7 +204,7 @@ class BayesianOptimization(object):
 
         Parameters
         ----------
-        goal : BayesOptAction
+        goal : BayesOpt.Goal # old: BayesOptAction
             The goal sent from the client for the last recent experiment.
         """
         self._update_model(goal)
@@ -256,7 +281,7 @@ class BayesianOptimization(object):
 
             # To avoid numerical issues and encourage exploration
             if self._check_data_vicinity(x_new, self.data_handler.get_xy()[0]):
-                rospy.logwarn("[BayesOpt] x_new is too close to existing data.")
+                self.logger.warning("[BayesOpt] x_new is too close to existing data, proposing random x_new instead.")
                 lb, ub = self.bounds[0], self.bounds[1]
                 x_rand = lb + (ub - lb) * torch.rand((self.input_dim,))
                 x_new = x_rand
@@ -280,7 +305,7 @@ class BayesianOptimization(object):
                 try:
                     assert load_config[p] == self.__getattribute__(p)
                 except AssertionError:
-                    rospy.logerr(f"Your configuration does not match with {load_dir}")
+                    self.logger.error(f"Your configuration does not match with {load_dir}")  #rclpy.logging.get_logger
 
     def _load_prev_bayesopt(
         self, load_dirs: Union[str, List[str]]
@@ -310,7 +335,8 @@ class BayesianOptimization(object):
         data_files = [
             os.path.join(load_dir, "evaluations.yaml") for load_dir in load_dirs
         ]
-        self.data_handler = DataHandler.from_file(data_files)
+    
+        self.data_handler = DataHandler.from_file(data_files,feature_names=self.config["feature_names"],outcome_names=self.config["outcome_names"]) # TODO: Log featurenames and outcomenames and read them from file
         self.data_handler.maximize = self.maximize
         self.gp = self._initialize_model(self.data_handler)
         self._fit_model()
@@ -322,13 +348,14 @@ class BayesianOptimization(object):
 
         Parameters
         ----------
-        goal : BayesOptAction
+        goal : BayesOpt.Goal #old: BayesOptAction
             The goal sent from the client for the most recent experiment.
         """
         if self.x_new is None:
             # The very first function value we obtain from the client is just to
             # trigger the server. At that point, there is no new input point,
             # hence, no need to need to update the model.
+            # self.logger.info("dbg BayesianOptimization: _update_model, self.x_new == None for init")
             return
 
         # Note: We always create a GP model from scratch when receiving new data.
@@ -337,6 +364,9 @@ class BayesianOptimization(object):
         # data is not updated in the GPyTorchModel. We also want at least 2 data
         # points such that the input normalization works properly.
         self.data_handler.add_xy(x=self.x_new, y=goal.y_new)
+
+        # self.logger.info("dbg BayesianOptimization: _update_mode, after add_xy")
+
         self.gp = self._initialize_model(self.data_handler)
         self._fit_model()
 
@@ -371,7 +401,7 @@ class BayesianOptimization(object):
         # less table for single precision. To avoid error checking, we use the
         # stochastic optimizer.
         mll = ExactMarginalLogLikelihood(self.gp.likelihood, self.gp)
-        fit_gpytorch_model(mll, optimizer=fit_gpytorch_torch, options={"disp": False})
+        fit_gpytorch_model(mll, optimizer=fit_gpytorch_mll_torch) #old:, options={"disp": False}
 
     def _initialize_acqf(self) -> AcquisitionFunction:
         """Initialize the acquisition function of choice.
@@ -526,7 +556,7 @@ class BayesianOptimization(object):
         # Update optimal parameters
         xn_opt, yn_opt = self.get_optimal_parameters()
         self.x_opt = torch.cat((self.x_opt, torch.atleast_2d(xn_opt)))
-        self.y_opt = torch.cat((self.y_opt, torch.tensor([[yn_opt]])))
+        self.y_opt = torch.cat((self.y_opt, torch.tensor([[yn_opt]],dtype=torch.double)))
 
         # Store all and optimal evaluation inputs/outputs to file
         data = self.data_handler.get_xy(as_dict=True)
@@ -593,6 +623,6 @@ class BayesianOptimization(object):
 
         plt.tight_layout()
         file_name = os.path.join(self.log_dir, f"acqf_visualize_{x_eval.shape[0]}.pdf")
-        rospy.logdebug(f"Saving debug visualization to: {file_name}")
+        self.logger.debug(f"Saving debug visualization to: {file_name}")
         plt.savefig(file_name, format="pdf")
         plt.close()

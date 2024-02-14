@@ -1,0 +1,15 @@
+after installing torch:
+ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.
+generate-parameter-library-py 0.3.7 requires pyyaml, which is not installed.
+generate-parameter-library-py 0.3.7 requires typeguard, which is not installed.
+
+  WARNING: The script pygmentize is installed in '/home/fadi/.local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  WARNING: The script f2py is installed in '/home/fadi/.local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  WARNING: The script docutils is installed in '/home/fadi/.local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  WARNING: The script pybabel is installed in '/home/fadi/.local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  WARNING: The scripts sphinx-apidoc, sphinx-autogen, sphinx-build and sphinx-quickstart are installed in '/home/fadi/.local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.

@@ -1,11 +1,11 @@
-import rospy
+import rclpy
 
 from functools import wraps
 from torch import Tensor
 from typing import Callable, Optional
 
 from botorch.acquisition import AnalyticAcquisitionFunction
-from botorch.acquisition.objective import ScalarizedObjective
+from botorch.acquisition.objective import ScalarizedPosteriorTransform # ScalarizedObjective
 from botorch.models.model import Model
 from botorch.utils.transforms import t_batch_mode_transform
 
@@ -21,21 +21,21 @@ class PosteriorMean(AnalyticAcquisitionFunction):
     def __init__(
         self,
         model: Model,
-        objective: Optional[ScalarizedObjective] = None,
+        objective: Optional[ScalarizedPosteriorTransform] = None,
         maximize: bool = True,
     ) -> None:
-        super().__init__(model, objective=objective)
+        super().__init__(model) #old:, objective=objective)
         self.maximize = maximize
 
     @t_batch_mode_transform(expected_q=1)
     def forward(self, X: Tensor) -> Tensor:
         """Evaluate the posterior mean on the candidate set X."""
-        posterior = self._get_posterior(X=X)
-        mean = posterior.mean.view(X.shape[:-2])
-        if self.maximize:
-            return mean
-        else:
-            return -mean
+        #old: posterior = self._get_posterior(X=X) # this was changed in botorch, see https://github.com/pytorch/botorch/commit/f1aa3deefe462abad5b1a92e0f1a8355633b743d
+        #old: mean = posterior.mean.view(X.shape[:-2])
+
+        mean, _ = self._mean_and_sigma(X, compute_sigma=False)
+        return mean if self.maximize else -mean
+
 
 
 def count_requests(func: Callable) -> Callable:
@@ -100,6 +100,7 @@ def create_log_dir(log_dir):
 
     log_dir = os.path.join(log_dir, time.strftime("%Y-%m-%d-%H-%M-%S"))
     os.makedirs(log_dir, exist_ok=True)
-    rospy.loginfo(f"Logging directory: {log_dir}")
+    logger = rclpy.logging.get_logger("util")
+    logger.info(f"Logging directory: {log_dir}")
 
     return log_dir
