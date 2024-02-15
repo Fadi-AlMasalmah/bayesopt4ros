@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-import rclpy
+# import rclpy
 import torch
 import yaml
 
@@ -135,8 +135,8 @@ class BayesianOptimization(object):
         feature_names = config["feature_names"]
         outcome_names = config["outcome_names"]
         logger.info('-----------')
-        logger.info("feature_names: "+feature_names[0])
-        logger.info("outcome_names: "+feature_names[0])
+        logger.info("feature_names: "+feature_names)
+        logger.info("outcome_names: "+feature_names)
 
         # Construct class instance based on the config
         return cls(

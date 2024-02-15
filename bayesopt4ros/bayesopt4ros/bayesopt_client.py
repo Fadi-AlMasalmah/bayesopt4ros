@@ -41,7 +41,7 @@ class BayesOptClient(Node):
         maximize : bool
             If True, consider the problem a maximization problem.
         """
-        super().__init__('bayesopt_action_client')
+        super().__init__('bayesopt_action_client_node')
         self.client = ActionClient(self, BayesOpt, server_name)
         self.iter = 1
         self.iterMax = 12 #TODO: make it using itertools as in the server and to be from the config file (or maybe it's not related?!)

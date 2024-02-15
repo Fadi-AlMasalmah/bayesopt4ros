@@ -28,6 +28,8 @@ setup(
         'console_scripts': [
             'bayesopt_action_server = bayesopt4ros.bayesopt_server:main',
             'bayesopt_action_client = bayesopt4ros.bayesopt_client:main',
+            'contextual_bayesopt_action_server = bayesopt4ros.contextual_bayesopt_server:main',
+            'contextual_bayesopt_action_client = bayesopt4ros.contextual_bayesopt_client:main',
         ],
     },
 )

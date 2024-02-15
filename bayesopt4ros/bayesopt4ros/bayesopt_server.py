@@ -41,10 +41,10 @@ class BayesOptServer(Node):
         silent: bool = False,
         # node_rate: float = 5.0,
     ):
-        super().__init__('BayesOptServer_Node')
+        super().__init__(node_name='BayesOptServer_Node')
         
-        self.declare_parameter('bayesopt_config', ' ')
-        config_file = self.get_parameter('bayesopt_config').get_parameter_value().string_value
+        self.declare_parameter('config_file', ' ')
+        config_file = self.get_parameter('config_file').get_parameter_value().string_value
 
         self._initialize_bayesopt(config_file)
         self._initialize_parameter_server(server_name)
@@ -116,7 +116,7 @@ class BayesOptServer(Node):
         # self.get_logger().info(f"dbg bayes_server inside next_param_callback(), after result = {result}")
 
         # self.parameter_server.set_succeeded(result) #maybe remove this?
-        goal_handle.succeed()
+        goal_handle.succeed() #TODO: check if this should .accept instead?!
         self._print_result(result) if not self.silent else None
         return result
     

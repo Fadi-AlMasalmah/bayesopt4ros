@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+# import rclpy
 import torch
 import yaml
 
@@ -18,6 +20,8 @@ from gpytorch.priors import GammaPrior
 from bayesopt4ros import BayesianOptimization
 from bayesopt4ros.data_handler import DataHandler
 from bayesopt4ros.util import PosteriorMean
+
+from rclpy.impl.rcutils_logger import RcutilsLogger
 
 
 class ContextualBayesianOptimization(BayesianOptimization):
@@ -43,6 +47,9 @@ class ContextualBayesianOptimization(BayesianOptimization):
         load_dir: str = None,
         config: dict = None,
         maximize: bool = True,
+        logger: RcutilsLogger=None,
+        feature_names: list[str]=None,
+        outcome_names: list[str]=None,
     ) -> None:
         """The ContextualBayesianOptimization class initializer.
 
@@ -69,10 +76,20 @@ class ContextualBayesianOptimization(BayesianOptimization):
             load_dir=load_dir,
             config=config,
             maximize=maximize,
+            logger = logger,
         )
+        if torch.cuda.is_available():
+            # Set the default device to GPU device 0
+            torch.cuda.set_device(0)
+            device = torch.device("cuda")
+            self.logger.info("Using GPU:", torch.cuda.get_device_name(0))
+        else:
+            # If no GPU is available, use CPU
+            device = torch.device("cpu")
+            self.logger.info("Using CPU")
 
     @classmethod
-    def from_file(cls, config_file: str) -> ContextualBayesianOptimization:
+    def from_file(cls, config_file: str, logger) -> ContextualBayesianOptimization:
         """Initialize a ContextualBayesianOptimization instance from a config file.
 
         Parameters
@@ -90,10 +107,11 @@ class ContextualBayesianOptimization(BayesianOptimization):
             config = yaml.load(f, Loader=yaml.FullLoader)
 
         # Bring bounds in correct format
-        lb = torch.tensor(config["lower_bound"])
-        ub = torch.tensor(config["upper_bound"])
+        lb = torch.tensor(config["lower_bound"],dtype=torch.double)
+        ub = torch.tensor(config["upper_bound"],dtype=torch.double)
         bounds = torch.stack((lb, ub))
-
+        feature_names = config["feature_names"]
+        outcome_names = config["outcome_names"]
         # Construct class instance based on the config
         return cls(
             input_dim=config["input_dim"],
@@ -106,6 +124,9 @@ class ContextualBayesianOptimization(BayesianOptimization):
             load_dir=config.get("load_dir"),
             maximize=config["maximize"],
             config=config,
+            logger = logger,
+            feature_names = feature_names,
+            outcome_names = outcome_names,
         )
 
     def get_optimal_parameters(self, context=None) -> Tuple[torch.Tensor, float]:
@@ -184,7 +205,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
             # trigger the server. At that point, there is no new input point,
             # hence, no need to need to update the model. However, the initial
             # context is already valid.
-            self.context = torch.tensor(goal.c_new)
+            self.context = torch.tensor(goal.c_new,dtype=torch.double)
             self.prev_context = self.context
             return
 
@@ -192,7 +213,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
         x = torch.cat((self.x_new, self.context))
         self.data_handler.add_xy(x=x, y=goal.y_new)
         self.prev_context = self.context
-        self.context = torch.tensor(goal.c_new)
+        self.context = torch.tensor(goal.c_new,dtype=torch.double)
 
         # Note: We always create a GP model from scratch when receiving new data.
         # The reason is the following: if the 'set_train_data' method of the GP
@@ -312,7 +333,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
         """
         context = context or self.prev_context
         if not isinstance(context, torch.Tensor):
-            context = torch.tensor(context)
+            context = torch.tensor(context,dtype=torch.double)
 
         columns = [i + self.input_dim for i in range(self.context_dim)]
         values = context.tolist()
