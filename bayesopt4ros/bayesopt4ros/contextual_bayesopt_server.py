@@ -91,7 +91,7 @@ class ContextualBayesOptServer(BayesOptServer):
         self.get_logger().info(f"[Result] x_best observed: {x_best.tolist()}")
         self.get_logger().info(f"[Result] c_best observed: {c_best.tolist()}")
         self.get_logger().info(f"[Result] y_best observed: {y_best}") 
-        self.get_logger().info(f"[Result] optimal estimated params at context={goal_handle.request.context.item()} are:")
+        self.get_logger().info(f"[Result] optimal estimated params at context={goal_handle.request.context} are:")
         self.get_logger().info(f"[Result] x_opt estimated: {x_opt.tolist()}")
         self.get_logger().info(f"[Result] f_opt estimated: {f_opt}")
         goal_handle.succeed() #old: # self.state_server.set_succeeded(state)
