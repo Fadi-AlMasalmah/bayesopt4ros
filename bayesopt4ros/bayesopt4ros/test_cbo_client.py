@@ -212,32 +212,22 @@ def main(args=None):
     test_client.run()
     # rclpy.logging.get_logger("test_CBO_client").warn(f"Objective: {objective}")
     rclpy.spin(test_client)
-    rclpy.shutdown()
-    # if objective == "ContextualForrester":
-    #     rostest.rosrun(
-    #         "bayesopt4ros", "test_python_client", ContextualClientTestCaseForrester
-    #     )
-    # else:
-    #     raise ValueError("Not a known objective function.")
 
 if __name__ == "__main__":
-    # Note: unfortunately, rostest.rosrun does not allow to parse arguments
-    # This can probably be done more efficiently but honestly, the ROS documentation for
-    # integration testing is kind of outdated and not very thorough...
     main()
 
 
 
-def run_NOTHING_JUST_FOR_UNDERSTANDING(self) -> None:
-    """Method that emulates client behavior."""
-    # First value is just to trigger the server
+# def LOGIC_OF_RUNNING(self) -> None:
+#     """Method that emulates client behavior."""
+#     # First value is just to trigger the server
 
-    c_new = self.sample_context()
-    x_new = self.request_parameter(y_new=0.0, c_new=c_new)
+#     c_new = self.sample_context()
+#     x_new = self.request_parameter(y_new=0.0, c_new=c_new)
 
-    # Start querying the BayesOpt server until it reached max iterations
-    for iter in itertools.count():
-        xc_new = torch.atleast_2d(torch.cat((x_new, c_new)))
-        y_new = self.func(xc_new).squeeze().item()
-        c_new = self.sample_context()
-        x_new = self.request_parameter(y_new=y_new, c_new=c_new)
+#     # Start querying the BayesOpt server until it reached max iterations
+#     for iter in itertools.count():
+#         xc_new = torch.atleast_2d(torch.cat((x_new, c_new)))
+#         y_new = self.func(xc_new).squeeze().item()
+#         c_new = self.sample_context()
+#         x_new = self.request_parameter(y_new=y_new, c_new=c_new)
