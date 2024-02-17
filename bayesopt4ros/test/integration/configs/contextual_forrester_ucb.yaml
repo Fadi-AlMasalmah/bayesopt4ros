@@ -12,3 +12,5 @@ max_iter: 100
 n_init: 3
 log_dir: "/root/ws/logs/contextual_forrester_ucb/"
 maximize: false
+feature_names: ["x1","c1"] #includes the context name also
+outcome_names: ["y1"]

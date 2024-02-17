@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
 
-import actionlib
+
 import itertools
 import unittest
 import numpy as np
-import rospy
-import rostest
+import rclpy
+import pytest
 import torch
+
+from rclpy.action import ActionClient
+from rclpy.node import Node
 
 from typing import Callable
 
 from bayesopt4ros import test_objectives
-from bayesopt4ros.msg import ContextualBayesOptAction, ContextualBayesOptGoal
-from bayesopt4ros.msg import (
-    ContextualBayesOptStateAction,
-    ContextualBayesOptStateGoal,
-    ContextualBayesOptStateResult,
-)
+from bayesopt_actions.action import ContextualBayesOpt, ContextualBayesOptState
 
 
-class ExampleContextualClient(object):
+
+class ExampleContextualClient(Node):
     """A demonstration on how to use the contexutal BayesOpt server from a Python
     node."""
 
@@ -35,11 +34,12 @@ class ExampleContextualClient(object):
         maximize : bool
             If True, consider the problem a maximization problem.
         """
-        rospy.init_node(self.__class__.__name__, anonymous=True, log_level=rospy.INFO)
-        self.client = actionlib.SimpleActionClient(
-            server_name, ContextualBayesOptAction
-        )
+        rclpy.init()
+        super().__init__('test_ContextBO_node')        
 
+        self.client = ActionClient(self, ContextualBayesOpt, server_name)
+        self.iter = 0
+        self.iterMax = 30 #
         self.client.wait_for_server()
 
         if objective == "ContextualForrester":
@@ -51,7 +51,7 @@ class ExampleContextualClient(object):
         self.y_best = -np.inf if maximize else np.inf
         self.x_best = None
 
-    def request_parameter(self, y_new: float, c_new: np.ndarray) -> np.ndarray:
+    def request_parameter(self, y_new: float, c_new: np.ndarray): # -> np.ndarray:
         """Method that requests new parameters from the ContextualBayesOpt
         server for a given context.
 
@@ -68,25 +68,52 @@ class ExampleContextualClient(object):
             An array containing the new parameters suggested by contextual BayesOpt
             server.
         """
-        goal = ContextualBayesOptGoal(y_new=y_new, c_new=c_new)
-        self.client.send_goal(goal)
-        self.client.wait_for_result()
-        result = self.client.get_result()
-        return torch.tensor(result.x_new)
+        self.iter += 1
+        goal = ContextualBayesOpt.Goal(y_new=y_new, c_new=c_new)
+        self._send_goal_future = self.client.send_goal_async(goal,feedback_callback=None)
+        self._send_goal_future.add_done_callback(self.goal_response_callback)
 
-    def request_bayesopt_state(self, context) -> ContextualBayesOptStateResult:
+    def goal_response_callback(self, future):
+            """A callback to know if the server rejected the goal immediately or accepted and will be treated"""
+            goal_handle = future.result()
+            if not goal_handle.accepted:
+                self.get_logger().info(f'Goal rejected by the server:( !!!!!!!!!!!! I dont know why! where x_new={goal_handle.request}')
+                return
+            self.get_logger().info('Goal accepted to be treated :)')
+            self._get_result_future = goal_handle.get_result_async()
+            self._get_result_future.add_done_callback(self.get_result_callback)
+
+    def get_result_callback(self, future):
+
+        result = future.result().result
+        x_new = result.x_new
+        if not len(x_new):
+            self.get_logger().info("[Client] Terminating - invalid response from server.")
+        self.get_logger().info(f"[Client] Iteration {self.iter + 1}")
+        p_string = ", ".join([f"{xi:.3f}" for xi in x_new])
+        self.get_logger().info(f"[Client] x_new = [{p_string}]")
+        c_new = self.sample_context()
+        # Emulate experiment by querying the objective function
+        xc_new = torch.atleast_2d(torch.cat((torch.tensor(x_new,dtype=torch.double), c_new)))
+        y_new = self.func(xc_new).squeeze().item()
+        self.get_logger().info(f"[Client] y_new = {y_new:.2f}")
+        # Request server and obtain new parameters
+        if self.iter < self.iterMax:
+            self.request_parameter(y_new, c_new = c_new) #TODO: does it assume y_new belongs to this c_new or previous one?!
+        # else:
+            # result = self.request_bayesopt_state(context=[0.7])
+
+    def request_bayesopt_state(self, context) -> ContextualBayesOptState.Result:
         """Method that requests the (final) state of BayesOpt server.
 
         .. note:: As we only call this function once, we can just create the
             corresponding client locally.
         """
-        state_client = actionlib.SimpleActionClient(
-            "ContextualBayesOptState", ContextualBayesOptStateAction
-        )
+        state_client = ActionClient(self, ContextualBayesOptState, "ContextualBayesOptState")
         state_client.wait_for_server()
 
-        goal = ContextualBayesOptStateGoal()
-        goal.context = list(context)
+        goal = ContextualBayesOptState.Goal()
+        goal.context = context #.tolist() ?
         state_client.send_goal(goal)
         state_client.wait_for_result()
         return state_client.get_result()
@@ -100,10 +127,10 @@ class ExampleContextualClient(object):
 
         # Start querying the BayesOpt server until it reached max iterations
         for iter in itertools.count():
-            rospy.loginfo(f"[Client] Iteration {iter + 1}")
+            self.get_logger().info(f"[Client] Iteration {iter + 1}")
             x_string = ", ".join([f"{xi:.3f}" for xi in x_new])
             c_string = ", ".join([f"{xi:.3f}" for xi in c_new])
-            rospy.loginfo(f"[Client] x_new = [{x_string}] for c_new = [{c_string}]")
+            self.get_logger().info(f"[Client] x_new = [{x_string}] for c_new = [{c_string}]")
 
             # Emulate experiment by querying the objective function
             xc_new = torch.atleast_2d(torch.cat((x_new, c_new)))
@@ -115,13 +142,13 @@ class ExampleContextualClient(object):
                 self.y_best = y_new
                 self.x_best = x_new
 
-            rospy.loginfo(f"[Client] y_new = {y_new:.2f}")
+            self.get_logger().info(f"[Client] y_new = {y_new:.2f}")
 
             # Request server and obtain new parameters
             c_new = self.sample_context()
             x_new = self.request_parameter(y_new=y_new, c_new=c_new)
             if not len(x_new):
-                rospy.loginfo("[Client] Terminating - invalid response from server.")
+                self.get_logger().info("[Client] Terminating - invalid response from server.")
                 break
 
     def sample_context(self) -> np.ndarray:
@@ -170,15 +197,24 @@ class ContextualClientTestCaseForrester(ContextualClientTestCase):
     _maximize = False
 
 
+
+
+
+def main(args=None):
+    # rclpy.init(args=args)
+    objective = "ContextualForrester" #old:rospy.get_param("/objective")
+    # rclpy.logging.get_logger("test_CBO_client").warn(f"Objective: {objective}")
+    cbo_client_case = ContextualClientTestCaseForrester()
+
+    # if objective == "ContextualForrester":
+    #     rostest.rosrun(
+    #         "bayesopt4ros", "test_python_client", ContextualClientTestCaseForrester
+    #     )
+    # else:
+    #     raise ValueError("Not a known objective function.")
+
 if __name__ == "__main__":
     # Note: unfortunately, rostest.rosrun does not allow to parse arguments
     # This can probably be done more efficiently but honestly, the ROS documentation for
     # integration testing is kind of outdated and not very thorough...
-    objective = rospy.get_param("/objective")
-    rospy.logwarn(f"Objective: {objective}")
-    if objective == "ContextualForrester":
-        rostest.rosrun(
-            "bayesopt4ros", "test_python_client", ContextualClientTestCaseForrester
-        )
-    else:
-        raise ValueError("Not a known objective function.")
+    main()

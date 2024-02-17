@@ -30,6 +30,7 @@ setup(
             'bayesopt_action_client = bayesopt4ros.bayesopt_client:main',
             'contextual_bayesopt_action_server = bayesopt4ros.contextual_bayesopt_server:main',
             'contextual_bayesopt_action_client = bayesopt4ros.contextual_bayesopt_client:main',
+            'test_cbo_client = bayesopt4ros.test_cbo_client:main',
         ],
     },
 )

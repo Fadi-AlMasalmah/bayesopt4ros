@@ -57,7 +57,7 @@ class ContextualBayesOptClient(Node):
 
         Parameters
         ----------
-        y_new : float
+        y_new : float 
             The function value obtained from the objective/experiment.
         c_new : np.ndarray
             The context variable for the next evaluation/experiment.
@@ -111,19 +111,20 @@ class ContextualBayesOptClient(Node):
         self.get_logger().info(f"[Client] Iteration {self.iter + 1}")
         p_string = ", ".join([f"{xi:.3f}" for xi in x_new])
         self.get_logger().info(f"[Client] x_new = [{p_string}]")
-
-        c_new = self.sample_context()
-
+        self.get_logger().info(f"[Client] c_prev = [{self.c_prev}]")
+        
         # Emulate experiment by querying the objective function
-        xc_new = torch.atleast_2d(torch.cat((torch.tensor(x_new,dtype=torch.double), c_new)))
+        xc_new = torch.atleast_2d(torch.cat((torch.tensor(x_new,dtype=torch.double), self.c_prev)))
         y_new = self.func(xc_new).squeeze().item()
         self.get_logger().info(f"[Client] y_new = {y_new:.2f}")
 
         # Request server and obtain new parameters
         if self.iter < self.iterMax:
+            c_new = self.sample_context() 
             self.request_parameter(y_new, c_new = c_new) #TODO: does it assume y_new belongs to this c_new or previous one?!
+            self.c_prev = c_new
         else:
-            result = self.request_bayesopt_state(context=[0.7])
+            result = self.request_bayesopt_state(context=[0.7])  #for testing
 
 
     def request_bayesopt_state(self, context):
@@ -168,7 +169,6 @@ class ContextualBayesOptClient(Node):
         # self.get_logger().info("[Client] for context = 0.1")
         # self.get_logger().info(f"[Client] x_opt {x_opt},  x_true_opt = (-2.011, -5.0)")
         # self.get_logger().info(f"[Client] f_opt {f_opt}, f_true_opt = -9.839")
-
 
 
     # def run(self) -> None:
@@ -216,7 +216,8 @@ class ContextualBayesOptClient(Node):
     def start_sending(self) -> None:
         """Method that emulates client behavior."""
         # First value is just to trigger the server
-        self.request_parameter(y_new=0.0,c_new=torch.tensor([0.1],dtype=torch.double))
+        self.c_prev = self.sample_context()
+        self.request_parameter(y_new=0.0, c_new=self.c_prev)
 
 
 # class ContextualClientTestCase(unittest.TestCase):
@@ -275,33 +276,10 @@ def main(args=None):
     rclpy.init(args=args)
 
     action_client = ContextualBayesOptClient(server_name='ContextualBayesOpt', objective="myFun", maximize=False)
-
     action_client.start_sending()
     rclpy.spin(action_client)
-
     rclpy.shutdown()
 
 
 if __name__ == '__main__':
     main()
-
-
-    #     # Get the (estimated) optimum of the objective
-    #     context = torch.tensor([0.7],dtype=torch.double)
-    #     result = node.request_bayesopt_state(context)
-    #     # True optimum of the objective
-    #     x_opt = result.x_opt
-    #     f_opt = result.f_opt
-
-    #     # Get the (estimated) optimum of the objective
-    #     context = torch.tensor([0.1],dtype=torch.double)
-    #     result = node.request_bayesopt_state(context)
-    #     # True optimum of the objective
-
-    #     # p_string = ", ".join([f"{xi:.3f}" for xi in x_new])
-    #     # rospy.loginfo(f"[Client] x_new = [{p_string}]")
-
-
-    #     # print("Result:", ', '.join([str(n) for n in result.sequence]))
-    # except rospy.ROSInterruptException:
-    #     print("program interrupted before completion") #, file=sys.stderr)

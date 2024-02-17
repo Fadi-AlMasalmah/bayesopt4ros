@@ -135,8 +135,8 @@ class BayesianOptimization(object):
         feature_names = config["feature_names"]
         outcome_names = config["outcome_names"]
         logger.info('-----------')
-        logger.info("feature_names: "+feature_names)
-        logger.info("outcome_names: "+feature_names)
+        logger.info("feature_names: "+" ".join(feature_names))
+        logger.info("outcome_names: "+" ".join(outcome_names))
 
         # Construct class instance based on the config
         return cls(
