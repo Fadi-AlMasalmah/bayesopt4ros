@@ -145,8 +145,6 @@ class ExampleContextualClient(Node):
         result = future.result().result
         # Save results
         self.results.append(result)
-        # self.results[self.test_point_id].x_opt = result.x_opt
-        # self.results[self.test_point_id].f_opt = result.f_opt
         # trigger next request
         self.test_point_id +=1
         if self.test_point_id < self.num_test_points:
@@ -216,18 +214,3 @@ def main(args=None):
 if __name__ == "__main__":
     main()
 
-
-
-# def LOGIC_OF_RUNNING(self) -> None:
-#     """Method that emulates client behavior."""
-#     # First value is just to trigger the server
-
-#     c_new = self.sample_context()
-#     x_new = self.request_parameter(y_new=0.0, c_new=c_new)
-
-#     # Start querying the BayesOpt server until it reached max iterations
-#     for iter in itertools.count():
-#         xc_new = torch.atleast_2d(torch.cat((x_new, c_new)))
-#         y_new = self.func(xc_new).squeeze().item()
-#         c_new = self.sample_context()
-#         x_new = self.request_parameter(y_new=y_new, c_new=c_new)
