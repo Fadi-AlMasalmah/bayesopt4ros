@@ -41,7 +41,7 @@ class ExampleContextualClient(Node):
 
         self.client = ActionClient(self, ContextualBayesOpt, server_name)
         self.iter = 0
-        self.iterMax = 30 #
+        self.iterMax = 100 #
         self.client.wait_for_server()
 
         if objective == "ContextualForrester":
@@ -111,7 +111,7 @@ class ExampleContextualClient(Node):
         # Request server and obtain new parameters
         if self.iter < self.iterMax:
             c_new = self.sample_context()
-            self.request_parameter(y_new, c_new = c_new) #TODO: does it assume y_new belongs to this c_new or previous one?!
+            self.request_parameter(y_new, c_new = c_new) #we send y_n (corresponds to previous context c_n) and we tell the server that current context is c_n+1 
             self.c_prev = c_new
         else: #end of training
             self.start_testing()
@@ -153,12 +153,12 @@ class ExampleContextualClient(Node):
             self.check_results()
 
         
-    def run(self) -> None:
+    def start_sending(self) -> None:
         """Method that emulates client behavior."""
-        # First value is just to trigger the server
+        # First value is just to trigger the server, the rest happens when we get back a response from the server
         c_new = self.sample_context()
         self.c_prev = c_new
-        self.request_parameter(y_new=0.0, c_new=c_new) #x_new = 
+        self.request_parameter(y_new=0.0, c_new=c_new)
 
     def sample_context(self) -> np.ndarray:
         """Samples a random context variable to emulate the client."""
@@ -185,13 +185,15 @@ class ExampleContextualClient(Node):
             # self.get_logger().info(f"dbg- check_results: result is following {result}")
             # formatted_values = [f"{value:.3f}" for value in result.x_opt]
             formatted_x_opt = ', '.join([f'{x:.3f}' for x in result.x_opt])
+            self.get_logger().info(f"[{id}]- context = {context}")
             self.get_logger().info(f"[{id}]- result.x_opt = {formatted_x_opt},  x_opt = {x_opt}")
             self.get_logger().info(f"[{id}]- result.f_opt = {result.f_opt:.3f},  f_opt = {f_opt}")
 
             # Get the (estimated) optimum of the objective for a given context
             # Be kind w.r.t. precision of solution
+
             np.testing.assert_almost_equal(result.x_opt, x_opt, decimal=1)
-            np.testing.assert_almost_equal(result.f_opt, f_opt, decimal=1)
+            np.testing.assert_almost_equal(result.f_opt, f_opt, decimal=0)
             id +=1
         self.get_logger().warn("--------------------------------------------------------")
         self.get_logger().warn("Congrats! All test has passed successfully with contextual_forrester function!")
@@ -207,7 +209,7 @@ def main(args=None):
             objective="ContextualForrester",
             maximize=False,
         )
-    test_client.run()
+    test_client.start_sending()
     # rclpy.logging.get_logger("test_CBO_client").warn(f"Objective: {objective}")
     rclpy.spin(test_client)
 

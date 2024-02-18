@@ -9,7 +9,7 @@ context_dim: 1
 
 acq_func: "UCB"
 max_iter: 100
-n_init: 3
+n_init: 4
 log_dir: "BO_logs/contextual_forrester_ucb/"
 maximize: false
 

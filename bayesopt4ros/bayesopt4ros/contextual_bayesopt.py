@@ -23,6 +23,9 @@ from bayesopt4ros.util import PosteriorMean
 
 from rclpy.impl.rcutils_logger import RcutilsLogger
 
+# import line_profiler
+# prof = line_profiler.LineProfiler()
+
 
 class ContextualBayesianOptimization(BayesianOptimization):
     """The contextual Bayesian optimization class.
@@ -34,7 +37,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
     --------
     :class:`bayesopt.BayesianOptimization`
     """
-
+    # profile = LineProfiler()
     def __init__(
         self,
         input_dim: int,
@@ -78,15 +81,17 @@ class ContextualBayesianOptimization(BayesianOptimization):
             maximize=maximize,
             logger = logger,
         )
-        if torch.cuda.is_available():
-            # Set the default device to GPU device 0
-            torch.cuda.set_device(0)
-            device = torch.device("cuda")
-            self.logger.info("Using GPU:", torch.cuda.get_device_name(0))
-        else:
-            # If no GPU is available, use CPU
-            device = torch.device("cpu")
-            self.logger.info("Using CPU")
+        # if torch.cuda.is_available():
+        #     # Set the default device to GPU device 0
+        #     torch.cuda.set_device(0)
+        #     device = torch.device("cuda")
+        #     self.logger.info("Using GPU:", torch.cuda.get_device_name(0))
+        # else:
+        #     # If no GPU is available, use CPU
+        #     device = torch.device("cpu")
+        #     self.logger.info("Using CPU")
+
+        # self.profiler = LineProfiler()
 
     @classmethod
     def from_file(cls, config_file: str, logger) -> ContextualBayesianOptimization:
@@ -189,6 +194,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
         """
         return ["input_dim", "context_dim", "maximize"]
 
+    # @prof
     def _update_model(self, goal):
         """Updates the GP with new data as well as the current context. Creates
         a model if none exists yet.
@@ -200,6 +206,8 @@ class ContextualBayesianOptimization(BayesianOptimization):
             the function value, i.e., the goal consists of [y_n, c_{n+1}]) sent
             from the client for the most recent experiment.
         """
+        self.logger.warning("dbg 0 start updating")
+
         if self.x_new is None and self.context is None:
             # The very first function value we obtain from the client is just to
             # trigger the server. At that point, there is no new input point,
@@ -215,14 +223,27 @@ class ContextualBayesianOptimization(BayesianOptimization):
         self.prev_context = self.context
         self.context = torch.tensor(goal.c_new,dtype=torch.double)
 
+        self.logger.warning("dbg 1 after concatination")
+
         # Note: We always create a GP model from scratch when receiving new data.
         # The reason is the following: if the 'set_train_data' method of the GP
         # is used instead, the normalization/standardization of the input/output
         # data is not updated in the GPyTorchModel. We also want at least 2 data
         # points such that the input normalization works properly.
         if self.data_handler.n_data >= 2:
+            self.logger.warning("dbg 2 befor init ")
+
             self.gp = self._initialize_model(self.data_handler)
+
+            self.logger.warning("dbg 3 after init ")
+
             self._fit_model()
+
+            self.logger.warning("dbg 4 after fit ")
+
+        # prof.print_stats()
+        self.logger.warning("dbg 5 end updating")
+            
 
     def _initialize_model(self, data_handler: DataHandler) -> GPyTorchModel:
         """Creates a GP object from data.
@@ -255,7 +276,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
         # For contextual BO, we do not want to specify the bounds for the context
         # variables (who knows what they might be...). We therefore use the neat
         # feature of BoTorch to infer the normalization bounds from data. However,
-        # this does not work is only a single data point is given.
+        # this does not work if only a single data point is given.
         input_transform = (
             Normalize(d=self.joint_dim) if len(self.data_handler) > 1 else None
         )
@@ -371,3 +392,4 @@ class ContextualBayesianOptimization(BayesianOptimization):
         """
         xc1 = torch.cat((x1, self.context))
         return super()._check_data_vicinity(xc1, x2)
+

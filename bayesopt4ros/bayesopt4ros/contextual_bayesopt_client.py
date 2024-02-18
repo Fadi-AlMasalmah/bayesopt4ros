@@ -19,6 +19,8 @@ from typing import Callable
 from bayesopt4ros import test_objectives
 from bayesopt_actions.action import ContextualBayesOpt, ContextualBayesOptState
 
+from line_profiler import LineProfiler
+
 class ContextualBayesOptClient(Node):
     """A demonstration on how to use the contexutal BayesOpt server from a Python
     node."""
@@ -38,7 +40,7 @@ class ContextualBayesOptClient(Node):
         super().__init__('contextual_bayesopt_action_client_node')        
         self.client = ActionClient(self, ContextualBayesOpt, server_name)
         self.iter = 0
-        self.iterMax = 10 #should be bigger that n_init+1 in server side, TODO: make it using itertools as in the server and to be from the config file (or maybe it's not related?!)
+        self.iterMax = 17 #should be bigger that n_init+1 in server side, TODO: make it using itertools as in the server and to be from the config file (or maybe it's not related?!)
 
         self.client.wait_for_server()
 
@@ -98,15 +100,10 @@ class ContextualBayesOptClient(Node):
 
     def get_result_callback(self, future):
         # self.get_logger().info(f"dbg get_result_cb: begining")
-
         result = future.result().result
         x_new = result.x_new
-
-        # self.get_logger().info(f"dbg get_result_cb: result = {result}")
-
         if not len(x_new):
             self.get_logger().info("[Client] Terminating - invalid response from server.")
-            
         # self.get_logger().info('Result: {0}'.format(result.x_new))
         self.get_logger().info(f"[Client] Iteration {self.iter + 1}")
         p_string = ", ".join([f"{xi:.3f}" for xi in x_new])

@@ -14,13 +14,16 @@ from botorch.acquisition import (
     ExpectedImprovement,
 )
 
-from botorch.fit import fit_gpytorch_model
 from botorch.models import SingleTaskGP
 from botorch.models.gpytorch import GPyTorchModel
 from botorch.models.transforms.input import Normalize
 from botorch.models.transforms.outcome import Standardize
 from botorch.optim import optimize_acqf as optimize_acqf_botorch
+
+from botorch.fit import fit_gpytorch_model
 from botorch.optim.fit import fit_gpytorch_mll_torch #old: fit_gpytorch_torch
+from botorch.optim.fit import fit_gpytorch_mll_scipy
+from botorch.fit import fit_gpytorch_mll
 
 from gpytorch.mlls import ExactMarginalLogLikelihood
 
@@ -370,6 +373,7 @@ class BayesianOptimization(object):
         self.gp = self._initialize_model(self.data_handler)
         self._fit_model()
 
+
     def _initialize_model(self, data_handler: DataHandler) -> GPyTorchModel:
         """Creates a GP object from data.
 
@@ -400,8 +404,19 @@ class BayesianOptimization(object):
         # Scipy optimizers is faster and more accurate but tends to be numerically
         # less table for single precision. To avoid error checking, we use the
         # stochastic optimizer.
+        self.logger.info("dbg 3.1 inside fit")
+        
         mll = ExactMarginalLogLikelihood(self.gp.likelihood, self.gp)
-        fit_gpytorch_model(mll, optimizer=fit_gpytorch_mll_torch) #old:, options={"disp": False}
+
+        self.logger.info("dbg 3.2 inside fit")
+
+        # original code has optimizer=fit_gpytorch_torch, but it no longer exists in the new version of botorch, here are the available ones
+        # fit_gpytorch_model(mll, optimizer=fit_gpytorch_mll_torch)       #SLOWEST (didn't pass test even with 35 training points 
+        # fit_gpytorch_model(mll, optimizer=fit_gpytorch_model)         # options={"disp": False}
+        # fit_gpytorch_model(mll, optimizer=fit_gpytorch_mll_scipy)     #
+        # fit_gpytorch_model(mll, optimizer=fit_gpytorch_model)         # 
+        mll = fit_gpytorch_mll(mll,optimizer=fit_gpytorch_mll_scipy,kwargs={"max_attempts":35})  # recommended for exact GP: https://botorch.org/docs/optimization
+        self.logger.info("dbg 3.3 inside fit")
 
     def _initialize_acqf(self) -> AcquisitionFunction:
         """Initialize the acquisition function of choice.
