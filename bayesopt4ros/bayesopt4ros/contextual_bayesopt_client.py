@@ -19,8 +19,6 @@ from typing import Callable
 from bayesopt4ros import test_objectives
 from bayesopt_actions.action import ContextualBayesOpt, ContextualBayesOptState
 
-from line_profiler import LineProfiler
-
 class ContextualBayesOptClient(Node):
     """A demonstration on how to use the contexutal BayesOpt server from a Python
     node."""

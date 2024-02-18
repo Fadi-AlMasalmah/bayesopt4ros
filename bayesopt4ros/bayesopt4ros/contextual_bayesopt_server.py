@@ -7,8 +7,6 @@ from bayesopt4ros.contextual_bayesopt import ContextualBayesianOptimization
 from bayesopt4ros import util, BayesOptServer
 from bayesopt_actions.action import ContextualBayesOpt, ContextualBayesOptState
 
-import cProfile, pstats, io
-from pstats import SortKey
 import timeit
 import torch
 class ContextualBayesOptServer(BayesOptServer):
@@ -66,36 +64,29 @@ class ContextualBayesOptServer(BayesOptServer):
         # self.get_logger().info(f"dbg - next_param_cb: after .succeed")
         self._print_result(result) if not self.silent else None
 
-        if self.request_count == 15:
-            tsec1 = timeit.timeit(lambda: self.bo._update_model(goal),number=1)
-            tsec2 = timeit.timeit(lambda: self.bo._get_next_x(),number=1)
-            tsec3 = timeit.timeit(lambda: self.bo._log_results(),number=1)
-            self.get_logger().info(f"--------TIME of _update_model(goal)={tsec1}")
-            self.get_logger().info(f"--------TIME of _get_next_x()={tsec2}")
-            self.get_logger().info(f"--------TIME of _log_results()={tsec3}")
-
-            tsec5 = timeit.timeit(lambda: self.bo._initialize_model(self.bo.data_handler),number=1)
-            self.get_logger().info(f"--------TIME of bo._initialize_model(data_handler)={tsec5}")
-
-            tsec4 = timeit.timeit(lambda: self.bo._fit_model(),number=1)
-            self.get_logger().info(f"--------TIME of _fit_model()={tsec4}")
-
-            xc = torch.cat((self.bo.x_new, self.bo.context))
-            tsec6 = timeit.timeit(lambda: self.bo.data_handler.add_xy(x=xc, y=goal.y_new),number=1)
-            self.get_logger().info(f"--------TIME of data_h.addxy(x,y)={tsec6}")
-
-            def test_torch(bo):
-                torch.cat((bo.x_new, bo.context))
-            tsec7 = timeit.timeit(lambda: test_torch(self.bo),number=1)
-            self.get_logger().info(f"--------TIME of data_h.addxy(x,y)={tsec7}")
-
+        # if self.request_count == 15:
+        #     tsec1 = timeit.timeit(lambda: self.bo._update_model(goal),number=1)
+        #     tsec2 = timeit.timeit(lambda: self.bo._get_next_x(),number=1)
+        #     tsec3 = timeit.timeit(lambda: self.bo._log_results(),number=1)
+        #     self.get_logger().info(f"--------TIME of _update_model(goal)={tsec1}")
+        #     self.get_logger().info(f"--------TIME of _get_next_x()={tsec2}")
+        #     self.get_logger().info(f"--------TIME of _log_results()={tsec3}")
+        #     tsec5 = timeit.timeit(lambda: self.bo._initialize_model(self.bo.data_handler),number=1)
+        #     self.get_logger().info(f"--------TIME of bo._initialize_model(data_handler)={tsec5}")
+        #     tsec4 = timeit.timeit(lambda: self.bo._fit_model(),number=1)
+        #     self.get_logger().info(f"--------TIME of _fit_model()={tsec4}")
+        #     xc = torch.cat((self.bo.x_new, self.bo.context))
+        #     tsec6 = timeit.timeit(lambda: self.bo.data_handler.add_xy(x=xc, y=goal.y_new),number=1)
+        #     self.get_logger().info(f"--------TIME of data_h.addxy(x,y)={tsec6}")
+        #     def test_torch(bo):
+        #         torch.cat((bo.x_new, bo.context))
+        #     tsec7 = timeit.timeit(lambda: test_torch(self.bo),number=1)
+        #     self.get_logger().info(f"--------TIME of data_h.addxy(x,y)={tsec7}")
 
 
         return result
 
     def state_callback(self, goal_handle):
-        # cprof = cProfile.Profile()
-        # cprof.enable()
 
         state = ContextualBayesOptState.Result()
         # Best observed variables
@@ -104,7 +95,6 @@ class ContextualBayesOptServer(BayesOptServer):
         state.c_best = c_best.tolist()
         state.y_best = float(y_best.item())
 
-        # self.get_logger().info(f"dbg - state_cb: context = {goal_handle.request.context}")
         # Posterior mean optimum for a given context
         x_opt, f_opt = self.bo.get_optimal_parameters(goal_handle.request.context)
         state.x_opt = x_opt.tolist()
@@ -116,30 +106,18 @@ class ContextualBayesOptServer(BayesOptServer):
         self.get_logger().info(f"[Result] x_opt estimated: {x_opt.tolist()}")
         self.get_logger().info(f"[Result] f_opt estimated: {f_opt}")
         goal_handle.succeed() #old: # self.state_server.set_succeeded(state)
-        # 
-        # cprof.disable()
-        # cprof.snapshot_stats()
-        # s = io.StringIO()
-        # sortby = SortKey.CUMULATIVE
-        # ps = pstats.Stats(cprof, stream=s).sort_stats(sortby)
-        # ps.print_stats()
-        # self.get_logger().info(s.getvalue())
-
-
-        # self.get_logger().info("HERE ARE THE PROFILER STATS")
-        # self.bo.print_profiler_stats()
 
         return state
         
 
     def _initialize_bayesopt(self, config_file):
-        # try:
-        self.bo = ContextualBayesianOptimization.from_file(config_file,logger = self.get_logger())
-        # except Exception as e:
-        #     self.get_logger().error(
-        #         f"[ContextualBayesOpt] Something went wrong with initialization: '{e}'"
-        #     )
-        # rospy.signal_shutdown("Initialization of ContextualBayesOpt failed.")
+        try:
+            self.bo = ContextualBayesianOptimization.from_file(config_file,logger = self.get_logger())
+        except Exception as e:
+            self.get_logger().error(
+                f"[ContextualBayesOpt] Something went wrong with initialization: '{e}'"
+            )
+            # rospy.signal_shutdown("Initialization of ContextualBayesOpt failed.")
 
     def _initialize_parameter_server(self, server_name):
         """This server obtains new function values and provides new parameters."""
@@ -184,14 +162,7 @@ def main(args=None):
     #     pass
 
     contextual_bayesopt_action_server = ContextualBayesOptServer()
-    # i=1
-    # for y_new, c_new in zip([0.2,0.3,0.4,0.5],[[0.3],[3.0],[4.0],[5.0]]):
-    #     goal = ContextualBayesOpt.Goal(y_new=0.2, c_new=[3.2]) 
-    #     lambda: contextual_bayesopt_action_server.bo._update_model(goal)
-    #     tsec = timeit.timeit(,number=3)
-    #     contextual_bayesopt_action_server.get_logger().info(f" -------- TIME is {tsec}")
-
-
+  
     try:
         rclpy.spin(contextual_bayesopt_action_server)
     except SystemExit:

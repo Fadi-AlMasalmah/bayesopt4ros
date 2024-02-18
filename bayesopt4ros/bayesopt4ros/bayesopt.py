@@ -176,25 +176,14 @@ class BayesianOptimization(object):
         torch.Tensor
             The new parameters as an array.
         """
-        # self.logger.info("dbg BayesianOptimization Class: next()")
-
         # 1) Update the model with the new data
         self._update_model(goal)
-
-
-        # self.logger.info("dbg BayesianOptimization Class: next() after updating the model")
 
         # 2) Retrieve a new point as response of the server
         self.x_new = self._get_next_x()
 
-        # self.logger.info(f"dbg BayesianOptimization Class: next() after getting next x {self.x_new}")
-
-
         # 3) Save current state to file
         self._log_results()
-
-        # self.logger.info("dbg BayesianOptimization Class: next() after log_results")
-
 
         return self.x_new
 
@@ -367,9 +356,6 @@ class BayesianOptimization(object):
         # data is not updated in the GPyTorchModel. We also want at least 2 data
         # points such that the input normalization works properly.
         self.data_handler.add_xy(x=self.x_new, y=goal.y_new)
-
-        # self.logger.info("dbg BayesianOptimization: _update_mode, after add_xy")
-
         self.gp = self._initialize_model(self.data_handler)
         self._fit_model()
 
@@ -404,11 +390,8 @@ class BayesianOptimization(object):
         # Scipy optimizers is faster and more accurate but tends to be numerically
         # less table for single precision. To avoid error checking, we use the
         # stochastic optimizer.
-        self.logger.info("dbg 3.1 inside fit")
         
         mll = ExactMarginalLogLikelihood(self.gp.likelihood, self.gp)
-
-        self.logger.info("dbg 3.2 inside fit")
 
         # original code has optimizer=fit_gpytorch_torch, but it no longer exists in the new version of botorch, here are the available ones
         # fit_gpytorch_model(mll, optimizer=fit_gpytorch_mll_torch)       #SLOWEST (didn't pass test even with 35 training points 
@@ -416,7 +399,6 @@ class BayesianOptimization(object):
         # fit_gpytorch_model(mll, optimizer=fit_gpytorch_mll_scipy)     #
         # fit_gpytorch_model(mll, optimizer=fit_gpytorch_model)         # 
         mll = fit_gpytorch_mll(mll,optimizer=fit_gpytorch_mll_scipy,kwargs={"max_attempts":35})  # recommended for exact GP: https://botorch.org/docs/optimization
-        self.logger.info("dbg 3.3 inside fit")
 
     def _initialize_acqf(self) -> AcquisitionFunction:
         """Initialize the acquisition function of choice.

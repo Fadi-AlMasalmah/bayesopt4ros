@@ -23,9 +23,6 @@ from bayesopt4ros.util import PosteriorMean
 
 from rclpy.impl.rcutils_logger import RcutilsLogger
 
-# import line_profiler
-# prof = line_profiler.LineProfiler()
-
 
 class ContextualBayesianOptimization(BayesianOptimization):
     """The contextual Bayesian optimization class.
@@ -37,7 +34,6 @@ class ContextualBayesianOptimization(BayesianOptimization):
     --------
     :class:`bayesopt.BayesianOptimization`
     """
-    # profile = LineProfiler()
     def __init__(
         self,
         input_dim: int,
@@ -194,7 +190,6 @@ class ContextualBayesianOptimization(BayesianOptimization):
         """
         return ["input_dim", "context_dim", "maximize"]
 
-    # @prof
     def _update_model(self, goal):
         """Updates the GP with new data as well as the current context. Creates
         a model if none exists yet.
@@ -206,7 +201,6 @@ class ContextualBayesianOptimization(BayesianOptimization):
             the function value, i.e., the goal consists of [y_n, c_{n+1}]) sent
             from the client for the most recent experiment.
         """
-        self.logger.warning("dbg 0 start updating")
 
         if self.x_new is None and self.context is None:
             # The very first function value we obtain from the client is just to
@@ -223,26 +217,14 @@ class ContextualBayesianOptimization(BayesianOptimization):
         self.prev_context = self.context
         self.context = torch.tensor(goal.c_new,dtype=torch.double)
 
-        self.logger.warning("dbg 1 after concatination")
-
         # Note: We always create a GP model from scratch when receiving new data.
         # The reason is the following: if the 'set_train_data' method of the GP
         # is used instead, the normalization/standardization of the input/output
         # data is not updated in the GPyTorchModel. We also want at least 2 data
         # points such that the input normalization works properly.
         if self.data_handler.n_data >= 2:
-            self.logger.warning("dbg 2 befor init ")
-
             self.gp = self._initialize_model(self.data_handler)
-
-            self.logger.warning("dbg 3 after init ")
-
             self._fit_model()
-
-            self.logger.warning("dbg 4 after fit ")
-
-        # prof.print_stats()
-        self.logger.warning("dbg 5 end updating")
             
 
     def _initialize_model(self, data_handler: DataHandler) -> GPyTorchModel:
