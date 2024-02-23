@@ -9,7 +9,7 @@ def generate_launch_description():
         [
             FindPackageShare("bayesopt4ros"),
             "config",
-            "contextual_myFun.yaml",
+            "contextual_hk1d_ke_ucb.yaml",
         ]
     )
 
