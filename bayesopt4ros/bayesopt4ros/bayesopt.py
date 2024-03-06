@@ -343,11 +343,13 @@ class BayesianOptimization(object):
         goal : BayesOpt.Goal #old: BayesOptAction
             The goal sent from the client for the most recent experiment.
         """
-        if self.x_new is None:
+        if self.x_new is None or goal.y_new < -10.0**8:
             # The very first function value we obtain from the client is just to
             # trigger the server. At that point, there is no new input point,
             # hence, no need to need to update the model.
-            # self.logger.info("dbg BayesianOptimization: _update_model, self.x_new == None for init")
+            # another case is when the client is restarting from zero but the server has trained the model already, 
+            #in this case, the client should send very negative value to tell the server not to train the model
+            self.logger.warning(f"dbg BayesianOptimization: _update_model, self.x_new == None or y_new = {goal.y_new} for triggering")
             return
 
         # Note: We always create a GP model from scratch when receiving new data.
@@ -410,7 +412,7 @@ class BayesianOptimization(object):
         """
         if self.acq_func.upper() == "UCB":
             acq_func = UpperConfidenceBound(
-                model=self.gp, beta=4.0, maximize=self.maximize
+                model=self.gp, beta=9.0, maximize=self.maximize
             )
         elif self.acq_func.upper() == "EI":
             best_f = self.data_handler.y_best  # note that EI assumes noiseless

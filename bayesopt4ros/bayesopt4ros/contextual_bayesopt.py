@@ -202,13 +202,14 @@ class ContextualBayesianOptimization(BayesianOptimization):
             from the client for the most recent experiment.
         """
 
-        if self.x_new is None and self.context is None:
+        if self.x_new is None and self.context is None or goal.y_new < -10.0**8:
             # The very first function value we obtain from the client is just to
             # trigger the server. At that point, there is no new input point,
             # hence, no need to need to update the model. However, the initial
             # context is already valid.
             self.context = torch.tensor(goal.c_new,dtype=torch.double)
             self.prev_context = self.context
+            self.logger.warning(f"dbg BayesianOptimization: _update_model, self.x_new == None or y_new = {goal.y_new} for triggering, context = {self.context}")
             return
 
         # Concatenate context and optimization variable
