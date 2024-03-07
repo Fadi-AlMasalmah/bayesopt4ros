@@ -247,14 +247,14 @@ class ContextualBayesianOptimization(BayesianOptimization):
         """
         # Kernel for optimization variables
         ad0 = tuple(range(self.input_dim))
-        k0 = MaternKernel(active_dims=ad0, lengthscale_prior=GammaPrior(3.0, 6.0))
+        k0 = MaternKernel(active_dims=ad0, lengthscale_prior=GammaPrior(3.0, 6.0)) #I tried(10.0, 10.0) and it seems to be better
 
         # Kernel for context variables
         ad1 = tuple(range(self.input_dim, self.input_dim + self.context_dim))
         k1 = MaternKernel(active_dims=ad1, lengthscale_prior=GammaPrior(3.0, 6.0))
 
         # Joint kernel is constructed via multiplication
-        covar_module = ScaleKernel(k0 * k1, outputscale_prior=GammaPrior(2.0, 0.15))
+        covar_module = ScaleKernel(k0 * k1, outputscale_prior=GammaPrior(2.0, 0.15)) #I tried (10.0, 0.1) but not sure if it makes difference
 
         # For contextual BO, we do not want to specify the bounds for the context
         # variables (who knows what they might be...). We therefore use the neat
