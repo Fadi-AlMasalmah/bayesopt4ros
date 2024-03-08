@@ -412,7 +412,7 @@ class BayesianOptimization(object):
         """
         if self.acq_func.upper() == "UCB":
             acq_func = UpperConfidenceBound(
-                model=self.gp, beta=9.0, maximize=self.maximize
+                model=self.gp, beta=12.0, maximize=self.maximize
             )
         elif self.acq_func.upper() == "EI":
             best_f = self.data_handler.y_best  # note that EI assumes noiseless

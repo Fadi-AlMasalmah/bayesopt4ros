@@ -213,10 +213,10 @@ class ContextualBayesianOptimization(BayesianOptimization):
             return
 
         # Concatenate context and optimization variable
+        self.context = torch.tensor(goal.c_new,dtype=torch.double)
         x = torch.cat((self.x_new, self.context))
         self.data_handler.add_xy(x=x, y=goal.y_new)
         self.prev_context = self.context
-        self.context = torch.tensor(goal.c_new,dtype=torch.double)
 
         # Note: We always create a GP model from scratch when receiving new data.
         # The reason is the following: if the 'set_train_data' method of the GP

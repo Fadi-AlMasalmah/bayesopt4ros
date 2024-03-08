@@ -105,12 +105,12 @@ class ExampleContextualClient(Node):
         self.get_logger().info(f"[Client] c_prev = [{self.c_prev}]")
         
         # Emulate experiment by querying the objective function
-        xc_new = torch.atleast_2d(torch.cat((torch.tensor(x_new,dtype=torch.double), self.c_prev)))
+        c_new = self.sample_context()
+        xc_new = torch.atleast_2d(torch.cat((torch.tensor(x_new,dtype=torch.double), c_new)))
         y_new = self.func(xc_new).squeeze().item()
         self.get_logger().info(f"[Client] y_new = {y_new:.2f}")
         # Request server and obtain new parameters
         if self.iter < self.iterMax:
-            c_new = self.sample_context()
             self.request_parameter(y_new, c_new = c_new) #we send y_n (corresponds to previous context c_n) and we tell the server that current context is c_n+1 
             self.c_prev = c_new
         else: #end of training
@@ -158,7 +158,7 @@ class ExampleContextualClient(Node):
         # First value is just to trigger the server, the rest happens when we get back a response from the server
         c_new = self.sample_context()
         self.c_prev = c_new
-        self.request_parameter(y_new=0.0, c_new=c_new)
+        self.request_parameter(y_new=-10.0**10, c_new=c_new)
 
     def sample_context(self) -> np.ndarray:
         """Samples a random context variable to emulate the client."""

@@ -16,6 +16,10 @@
 
 A Bayesian Optimisation package for ROS developed by the [Intelligent Control Systems (ICS)](https://idsc.ethz.ch/research-zeilinger.html) group at ETH Zurich. 
 
+## NOTE ON ros2_humble-current-context Branch
+
+this branch changes a bit on the order of using data: here we send x_new to client, we then recive [y_new,c_new], which corresponds to the finished experiment, and we use them right away in the model (unlike the main branch, where we attach y_new to the previous context). 
+
 ## Documentation
 
 We provide a official and up-to-date documentation [here](https://intelligentcontrolsystems.github.io/bayesopt4ros/).
