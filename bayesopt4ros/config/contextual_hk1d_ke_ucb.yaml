@@ -7,11 +7,12 @@ upper_bound: [1000.0, 1000.0, 10.0, 10.0] #Qz_diag(3), R_diag(2)
 
 context_dim: 1
 
-acq_func: "UCB"
+acq_func: "EI" #"EI" #"UCB"
 max_iter: 200
 n_init: 4
 log_dir: "BO_logs/contextual_hk1d_ucb_ke/"
 maximize: false
-
 feature_names: ["Q11","Q33","R11","R22","ke"] #includes the context name also
 outcome_names: ["performance_metric"]
+
+# load_dir: "BO_logs/contextual_hk1d_ucb_ke/2024-03-11-23-20-07" # "/home/fadi/ros2_ws_git_3/BO_logs/contextual_hk1d_ucb_ke/2024-03-11-21-31-47" #in order continue from previous evaluations, we can just put the path to the log_dir
