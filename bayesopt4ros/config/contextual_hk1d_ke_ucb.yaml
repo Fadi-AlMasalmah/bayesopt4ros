@@ -8,6 +8,7 @@ upper_bound: [1000.0, 1000.0, 10.0, 10.0] #Qz_diag(3), R_diag(2)
 context_dim: 1
 
 acq_func: "EI" #"EI" #"UCB"
+# ucb_beta: 3.0
 max_iter: 200
 n_init: 4
 log_dir: "BO_logs/contextual_hk1d_ucb_ke/"

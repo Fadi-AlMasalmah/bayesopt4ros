@@ -115,6 +115,21 @@ class ContextualBayesianOptimization(BayesianOptimization):
         bounds = torch.stack((lb, ub))
         feature_names = config["feature_names"]
         outcome_names = config["outcome_names"]
+
+        ucb_beta = 3.0
+        if config['acq_func'] == 'UCB':
+            if 'ucb_beta' in config:
+                ucb_beta = config['ucb_beta']
+
+        logger.info('----------- Initialising Contextual BayesianOptimization -----------')
+        logger.info("feature_names: "+" ".join(feature_names))
+        logger.info("outcome_names: "+" ".join(outcome_names))
+        logger.info('input_dim: '+str(config["input_dim"]))
+        logger.info('max_iter: '+str(config["max_iter"]))
+        logger.info('bounds: '+str(bounds))
+        logger.info('acq_func: '+config['acq_func'])
+        logger.info('ucb_beta: '+str(ucb_beta)) if config['acq_func'] == 'UCB' else None
+        logger.info('-----------')
         # Construct class instance based on the config
         return cls(
             input_dim=config["input_dim"],
@@ -122,7 +137,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
             max_iter=config["max_iter"],
             bounds=bounds,
             acq_func=config["acq_func"],
-            ucb_beta=config["ucb_beta"],
+            ucb_beta=ucb_beta,
             n_init=config["n_init"],
             log_dir=config.get("log_dir"),
             load_dir=config.get("load_dir"),
