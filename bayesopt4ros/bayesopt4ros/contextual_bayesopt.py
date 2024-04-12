@@ -41,6 +41,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
         max_iter: int,
         bounds: Tensor,
         acq_func: str = "UCB",
+        ucb_beta: float = 3.0,
         n_init: int = 5,
         log_dir: str = None,
         load_dir: str = None,
@@ -70,6 +71,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
             max_iter=max_iter,
             bounds=bounds,
             acq_func=acq_func,
+            ucb_beta=ucb_beta,
             n_init=n_init,
             log_dir=log_dir,
             load_dir=load_dir,
@@ -120,6 +122,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
             max_iter=config["max_iter"],
             bounds=bounds,
             acq_func=config["acq_func"],
+            ucb_beta=config["ucb_beta"],
             n_init=config["n_init"],
             log_dir=config.get("log_dir"),
             load_dir=config.get("load_dir"),
@@ -213,6 +216,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
             return
 
         # Concatenate context and optimization variable
+        self.logger.info(f"dbg BayesianOptimization: _update_model, self.x_new = {self.x_new}, self.context = {self.context}, goal.y_new = {goal.y_new}, goal.c_new = {goal.c_new}")
         x = torch.cat((self.x_new, self.context))
         self.data_handler.add_xy(x=x, y=goal.y_new)
         self.prev_context = self.context
@@ -247,14 +251,14 @@ class ContextualBayesianOptimization(BayesianOptimization):
         """
         # Kernel for optimization variables
         ad0 = tuple(range(self.input_dim))
-        k0 = MaternKernel(active_dims=ad0, lengthscale_prior=GammaPrior(3.0, 6.0)) #I tried(10.0, 10.0) and it seems to be better
+        k0 = MaternKernel(active_dims=ad0, nu=1.5) #, lengthscale_prior=GammaPrior(3.0, 6.0)) #I tried(10.0, 10.0) and it seems to be better
 
         # Kernel for context variables
         ad1 = tuple(range(self.input_dim, self.input_dim + self.context_dim))
-        k1 = MaternKernel(active_dims=ad1, lengthscale_prior=GammaPrior(3.0, 6.0))
+        k1 = MaternKernel(active_dims=ad1) #, lengthscale_prior=GammaPrior(3.0, 6.0))
 
         # Joint kernel is constructed via multiplication
-        covar_module = ScaleKernel(k0 * k1, outputscale_prior=GammaPrior(2.0, 0.15)) #I tried (10.0, 0.1) but not sure if it makes difference
+        covar_module = ScaleKernel(k0 * k1) #, outputscale_prior=GammaPrior(2.0, 0.15)) #I tried (10.0, 0.1) but not sure if it makes difference
 
         # For contextual BO, we do not want to specify the bounds for the context
         # variables (who knows what they might be...). We therefore use the neat

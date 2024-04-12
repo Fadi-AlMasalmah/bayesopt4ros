@@ -12,6 +12,9 @@ from botorch.acquisition import (
     AcquisitionFunction,
     UpperConfidenceBound,
     ExpectedImprovement,
+    ProbabilityOfImprovement,
+    LogNoisyExpectedImprovement,
+    LogExpectedImprovement,
 )
 
 from botorch.models import SingleTaskGP
@@ -49,6 +52,7 @@ class BayesianOptimization(object):
         max_iter: int,
         bounds: Tensor,
         acq_func: str = "UCB",
+        ucb_beta: float = 3.0, 
         n_init: int = 5,
         log_dir: str = None,
         load_dir: str = None,
@@ -76,6 +80,8 @@ class BayesianOptimization(object):
             A [2, input_dim] shaped tensor specifying the optimization domain.
         acq_func : str
             The acquisition function specifier.
+        uc_beta : float
+            The beta parameter for exploration for the UCB acquisition function.
         n_init : int
             Number of point for initial design, i.e. Sobol.
         log_dir : str
@@ -93,6 +99,7 @@ class BayesianOptimization(object):
         self.max_iter = max_iter
         self.bounds = bounds
         self.acq_func = acq_func
+        self.ucb_beta = ucb_beta
         self.n_init = n_init
         self.x_init = self._initial_design(n_init)
         self.x_new = None
@@ -141,6 +148,12 @@ class BayesianOptimization(object):
         logger.info("feature_names: "+" ".join(feature_names))
         logger.info("outcome_names: "+" ".join(outcome_names))
 
+        ucb_beta = 3.0
+        if config['acq_func'] == 'UCB':
+            if 'ucb_beta' in config:
+                ucb_beta = config['ucb_beta']
+        
+
         # Construct class instance based on the config
         return cls(
             input_dim=config["input_dim"],
@@ -155,6 +168,7 @@ class BayesianOptimization(object):
             logger=logger,
             feature_names = feature_names,
             outcome_names = outcome_names,
+            ucb_beta = ucb_beta
         )
 
     def next(self, goal: BayesOpt.Goal) -> Tensor: #BayesOptAction
@@ -412,12 +426,24 @@ class BayesianOptimization(object):
         """
         if self.acq_func.upper() == "UCB":
             acq_func = UpperConfidenceBound(
-                model=self.gp, beta=9.0, maximize=self.maximize
+                model=self.gp, beta=self.ucb_beta, maximize=self.maximize
             )
         elif self.acq_func.upper() == "EI":
             best_f = self.data_handler.y_best  # note that EI assumes noiseless
             acq_func = ExpectedImprovement(
                 model=self.gp, best_f=best_f, maximize=self.maximize
+            )
+        elif self.acq_func.upper() == "PI":
+            acq_func = ProbabilityOfImprovement(
+                model=self.gp, best_f=self.data_handler.y_best, maximize=self.maximize
+            )
+        # elif self.acq_func.upper() == "LEI":
+        #     acq_func =LogNoisyExpectedImprovement(
+        #         model=self.gp, X_observed=self.data_handler.y_best, maximize=self.maximize
+        #     )
+        elif self.acq_func.upper() == "LEI":
+            acq_func = LogExpectedImprovement(
+                model=self.gp, best_f=self.data_handler.y_best, maximize=self.maximize
             )
         elif self.acq_func.upper() == "NEI":
             raise NotImplementedError(
