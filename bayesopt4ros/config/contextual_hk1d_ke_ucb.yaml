@@ -1,12 +1,12 @@
 # This configuration file is specific for the contextual Forrester test function.
 experiment_name: "contextual_hk1d_ucb_ke"
 
-input_dim: 4
+input_dim: 5
 # lower_bound: [0.0  , 0.0 , 0.0001 , 0.0001]  #Qz_diag(3), R_diag(2)
 # upper_bound: [1000.0, 1000.0, 100.0, 100.0] #Qz_diag(3), R_diag(2)
 
-lower_bound: [0.0,0.0, 0., 0.] #[1.0  , 1.0 , 0.0001 , 0.0001]  #Qz_diag(3), R_diag(2)
-upper_bound: [5000.0, 5000.0, 100, 100] #[1000.0, 1000.0, 10.0, 10.0] #Qz_diag(3), R_diag(2)
+lower_bound: [0.0,  0.0,    0.0,  0., 0.] #[1.0  , 1.0 , 0.0001 , 0.0001]  #Qz_diag(3), R_diag(2)
+upper_bound: [5000., 10., 5000, 100, 100] #[1000.0, 1000.0, 10.0, 10.0] #Qz_diag(3), R_diag(2)
 
 
 context_dim: 1
@@ -17,7 +17,7 @@ max_iter: 200
 n_init: 3
 log_dir: "BO_logs/contextual_hk1d_ucb_ke/"
 maximize: false
-feature_names: ["Q11","Q33","R11","R22","ke"] #includes the context name also
+feature_names: ["Q11","Q22","Q33","R11","R22","ke"] #includes the context name also
 outcome_names: ["performance_metric"]
 
 # load_dir: "BO_logs/contextual_hk1d_ucb_ke/2024-03-11-23-20-07" # "/home/fadi/ros2_ws_git_3/BO_logs/contextual_hk1d_ucb_ke/2024-03-11-21-31-47" #in order continue from previous evaluations, we can just put the path to the log_dir
