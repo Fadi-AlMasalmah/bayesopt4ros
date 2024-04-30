@@ -6,13 +6,13 @@ input_dim: 5
 # upper_bound: [1000.0, 1000.0, 100.0, 100.0] #Qz_diag(3), R_diag(2)
 
 lower_bound: [0.0,  0.0,    0.0,  0., 0.] #[1.0  , 1.0 , 0.0001 , 0.0001]  #Qz_diag(3), R_diag(2)
-upper_bound: [5000., 10., 5000, 100, 100] #[1000.0, 1000.0, 10.0, 10.0] #Qz_diag(3), R_diag(2)
+upper_bound: [5000., 10., 1000, 1000, 1000] #[1000.0, 1000.0, 10.0, 10.0] #Qz_diag(3), R_diag(2)
 
 
 context_dim: 1
 
 acq_func: "UCB" #"EI" #"UCB"
-ucb_beta: 2.0
+ucb_beta: 1.0
 max_iter: 200
 n_init: 3
 log_dir: "BO_logs/contextual_hk1d_ucb_ke/"
