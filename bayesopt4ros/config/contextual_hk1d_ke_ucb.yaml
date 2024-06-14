@@ -5,18 +5,19 @@ input_dim: 5
 # lower_bound: [0.0  , 0.0 , 0.0001 , 0.0001]  #Qz_diag(3), R_diag(2)
 # upper_bound: [1000.0, 1000.0, 100.0, 100.0] #Qz_diag(3), R_diag(2)
 
-lower_bound: [0.0,  0.0,    0.0,  0., 0.] #[1.0  , 1.0 , 0.0001 , 0.0001]  #Qz_diag(3), R_diag(2)
-upper_bound: [5000., 10., 1000, 1000, 1000] #[1000.0, 1000.0, 10.0, 10.0] #Qz_diag(3), R_diag(2)
+lower_bound: [0.0,  0.0,   0.0,  10, 10] #,0,0,0] #[1.0  , 1.0 , 0.0001 , 0.0001]  #Qz_diag(3), R_diag(2)
+upper_bound: [10000, 10.0, 10000.0, 1000.0, 1000.0] #,10000,100,10000] #[1000.0, 1000.0, 10.0, 10.0] #Qz_diag(3), R_diag(2)
 
 
 context_dim: 1
 
-acq_func: "UCB" #"EI" #"UCB"
+acq_func: "UCB"  #"EI" , "UCB", "LEI" (Log Expec Improvement, doesn't consider noise), "PI" (Probability of Improvement)
 ucb_beta: 1.0
 max_iter: 200
 n_init: 3
 log_dir: "BO_logs/contextual_hk1d_ucb_ke/"
 maximize: false
+# feature_names: ["Q11","Q22","Q33","R11","R22","P11","P22","P33","ke"] #includes the context name also
 feature_names: ["Q11","Q22","Q33","R11","R22","ke"] #includes the context name also
 outcome_names: ["performance_metric"]
 

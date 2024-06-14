@@ -42,7 +42,7 @@ class ContextualBayesianOptimization(BayesianOptimization):
         bounds: Tensor,
         acq_func: str = "UCB",
         ucb_beta: float = 3.0,
-        n_init: int = 5,
+        n_init: int = 3,
         log_dir: str = None,
         load_dir: str = None,
         config: dict = None,

@@ -430,8 +430,10 @@ class BayesianOptimization(object):
             An acquisition function based on BoTorch's base class.
         """
         if self.acq_func.upper() == "UCB":
+            beta = self.ucb_beta * (1 - self.n_data / 16.0)
+            beta = max(beta, 0.5)  # Ensure that beta is not too small
             acq_func = UpperConfidenceBound(
-                model=self.gp, beta=self.ucb_beta, maximize=self.maximize
+                model=self.gp, beta=beta, maximize=self.maximize
             )
         elif self.acq_func.upper() == "EI":
             best_f = self.data_handler.y_best  # note that EI assumes noiseless
@@ -525,9 +527,12 @@ class BayesianOptimization(object):
         torch.Tensor
             Array containing the initial points.
         """
-        sobol_eng = torch.quasirandom.SobolEngine(dimension=self.input_dim)
-        sobol_eng.fast_forward(n=1)  # first point is origin, boring...
-        x0_init = sobol_eng.draw(n_init)  # points are in [0, 1]^d
+        # sobol_eng = torch.quasirandom.SobolEngine(dimension=self.input_dim)
+        # sobol_eng.fast_forward(n=1)  # first point is origin, boring...
+        # x0_init = sobol_eng.draw(n_init)  # points are in [0, 1]^d
+
+        import numpy as np
+        x0_init = np.random.rand(n_init, self.input_dim)
         return self.bounds[0] + (self.bounds[1] - self.bounds[0]) * x0_init
 
     def _check_data_vicinity(self, x1, x2):
